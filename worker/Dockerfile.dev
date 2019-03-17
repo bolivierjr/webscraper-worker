@@ -1,0 +1,17 @@
+FROM python:3.7-slim
+
+WORKDIR /app
+
+COPY requirements.txt ./
+
+RUN pip install -r requirements.txt
+
+COPY . .
+
+RUN apt-get update && apt-get install -y wget firefox-esr
+
+RUN wget -q "https://github.com/mozilla/geckodriver/releases/download/v0.24.0/geckodriver-v0.24.0-linux64.tar.gz" -O /tmp/geckodriver.tar.gz \
+    && tar -xzf /tmp/geckodriver.tar.gz -C /usr/local/bin/ \
+    && chmod +x /usr/local/bin/geckodriver
+
+CMD ["python3", "app.py"]

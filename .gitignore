@@ -1,0 +1,8 @@
+venv/
+.vscode
+
+*pycache*
+*.pyc
+
+*.log
+*.sql
