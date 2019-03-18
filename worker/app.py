@@ -29,18 +29,29 @@ def main():
 
                 utils.scrape_data(url_list, timeout, ip)
 
+                """
+                Need to take the items in the redis
+                cache and store it in the postgres db
+                here.
+                """
+
             elif 'error' in last_item.keys():
                 time.sleep(30)
                 continue
 
             elif 'done' in last_item.keys():
-                print('you are done')
+                """
+                Needs to start going over the main
+                postgres database to check all the
+                failed scrapes and start rescraping
+                again here.
+                """
+                pass
 
         except (requests.exceptions.RequestException, Exception) as error:
             logging.error(f'{error}', exc_info=True)
             print(f'ERROR: {error}. Check master.log for tracestack.')
 
-        time.sleep(5)
 
 if __name__ == '__main__':
     main()

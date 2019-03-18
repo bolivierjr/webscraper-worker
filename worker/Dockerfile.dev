@@ -14,4 +14,4 @@ RUN wget -q "https://github.com/mozilla/geckodriver/releases/download/v0.24.0/ge
     && tar -xzf /tmp/geckodriver.tar.gz -C /usr/local/bin/ \
     && chmod +x /usr/local/bin/geckodriver
 
-CMD ["python3", "app2.py"]
+CMD ["python3", "app.py"]
