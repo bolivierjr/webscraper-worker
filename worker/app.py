@@ -3,48 +3,44 @@
 
 
 import os
+import sys
 import time
-import redis
 import requests
 import logging
+from utils import utils
 
 
-def get_url_list():
-    api_host = os.environ.get('API_HOST')
-    api_port = os.environ.get('API_PORT')
-    urls = requests.get(f'http://{api_host}:{api_port}/api/urls')
-
-    return urls.json()
-
-if __name__ == '__main__':
+def main():
     print('Worker running...')
 
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                         filename='worker.log',
                         datefmt='%d-%b-%y %H:%M:%S')
 
+    ip = utils.get_ip()
+
     while True:
         try:
-            timeout = None
-            url_list = get_url_list()
-            last_item = url_list[len(url_list) - 1]
+            url_list, last_item = utils.get_url_list()
 
             if 'timeout' in last_item.keys():
                 timeout = last_item.get('timeout')
                 url_list.remove(last_item)
+
+                utils.scrape_data(url_list, timeout, ip)
 
             elif 'error' in last_item.keys():
                 time.sleep(30)
                 continue
 
             elif 'done' in last_item.keys():
-                pass
-
-            for url_info in url_list:
-                pass
+                print('you are done')
 
         except (requests.exceptions.RequestException, Exception) as error:
             logging.error(f'{error}', exc_info=True)
             print(f'ERROR: {error}. Check master.log for tracestack.')
 
         time.sleep(5)
+
+if __name__ == '__main__':
+    main()
