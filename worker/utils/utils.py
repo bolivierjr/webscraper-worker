@@ -50,9 +50,8 @@ async def get_failed_data():
         for failed in failed_items:  # fix this
             cache.rpush('failed', failed)
 
-    except Exception as error:
-        logging.error(f'{error}', exc_info=True)
-        print(f'ERROR: {error}. Check master.log for tracestack.')
+    except Exception:
+        raise
 
     finally:
         if conn:
@@ -144,10 +143,9 @@ async def store_data(data_list):
         print('Successfully stored data in postgres...')
         logging.info('Successfully stored data in postgres...')
 
-    except Exception as error:
-        logging.error(f'{error}', exc_info=True)
-        print(f'ERROR: {error}. Check master.log for tracestack.')
-
+    except Exception:
+        raise
+        
 
 def scrape_data(urls_data, timeout, ip):
     print('Scraping...')
@@ -308,11 +306,5 @@ def _deserialize(data):
 
 
 def _clear_cache():
-    try:
-        cache = StrictRedis(host=REDIS_HOST, port=REDIS_PORT)
-        cache.flushall()
-
-    except Exception as error:
-            logging.error(f'{error}. Cannot get ip', exc_info=True)
-            print(f'ERROR: {error}. Check master.log for tracestack.')
-
+    cache = StrictRedis(host=REDIS_HOST, port=REDIS_PORT)
+    cache.flushall()
