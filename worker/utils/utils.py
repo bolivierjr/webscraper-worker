@@ -238,18 +238,16 @@ def scrape_data(urls_data, timeout, ip):
 
 def get_ip():
     try:
-        ip = requests.get('https://api.ipify.org').text
+        ip = None
+        ip = requests.get(f'http://{API_HOST}:{API_PORT}/api/get_ip')
 
-    except:
-        try:
+        if ip.startswith('127.0.0.1') or ip is None:
             ip = requests.get('https://ident.me/').text
 
-        except Exception as error:
-            logging.error(f'{error}. Cannot get ip', exc_info=True)
-            print(f'ERROR: {error}. Check master.log for tracestack.')
-            sys.exit(1)
-
-    return ip
+        return ip
+    
+    except Exception:
+        raise
 
 
 def get_url_list():

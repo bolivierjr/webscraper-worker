@@ -18,10 +18,9 @@ def main():
                         filename='worker.log',
                         datefmt='%d-%b-%y %H:%M:%S')
 
-    ip = utils.get_ip()
-
     while True:
         try:
+            ip = utils.get_ip()
             url_list, last_item = utils.get_url_list()
 
             # last_item = {'done': True}  # for testing
@@ -45,6 +44,7 @@ def main():
         except (requests.exceptions.RequestException, Exception) as error:
             logging.error(f'{error}', exc_info=True)
             print(f'ERROR: {error}. Check master.log for tracestack.')
+            time.sleep(1)
 
 
 if __name__ == '__main__':
