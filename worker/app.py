@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-
 import os
 import sys
 import time
-import requests
+import asyncio
 import logging
+import requests
 from utils import utils
+from redis import StrictRedis
 
 
 def main():
@@ -23,30 +24,23 @@ def main():
         try:
             url_list, last_item = utils.get_url_list()
 
+            # last_item = {'done': True}  # for testing
             if 'timeout' in last_item.keys():
                 timeout = last_item.get('timeout')
                 url_list.remove(last_item)
 
-                utils.scrape_data(url_list, timeout, ip)
-
-                """
-                Need to take the items in the redis
-                cache and store it in the postgres db
-                here.
-                """
+                cache_data = utils.scrape_data(url_list, timeout, ip)
+                store_data = utils.store_data(cache_data)
+                asyncio.run(store_data)
 
             elif 'error' in last_item.keys():
                 time.sleep(30)
                 continue
 
             elif 'done' in last_item.keys():
-                """
-                Needs to start going over the main
-                postgres database to check all the
-                failed scrapes and start rescraping
-                again here.
-                """
-                pass
+                failed = utils.get_failed_data()
+                asyncio.run(failed)  # fix this
+                time.sleep(100)
 
         except (requests.exceptions.RequestException, Exception) as error:
             logging.error(f'{error}', exc_info=True)
