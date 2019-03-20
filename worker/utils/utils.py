@@ -9,7 +9,7 @@ import requests
 from lxml import html
 from redis import StrictRedis
 from datetime import datetime
-from selenium.webdriver import Firefox, FirefoxProfile
+from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
 
 
@@ -36,7 +36,7 @@ postgres_details = {
 }
 
 
-async def get_failed_data():
+async def get_failed_data(timeout, ip):
     try:
         cache = StrictRedis(host=REDIS_HOST, port=REDIS_PORT)
 
@@ -47,15 +47,26 @@ async def get_failed_data():
                LIMIT 300;'''
         )
 
-        for failed in failed_items:  # fix this
-            cache.rpush('failed', failed)
+        # Nothing left to scrape
+        if not failed_items:
+            print('Scraping Complete.')
+            logging.info('Scraping is successfully completed...')
+            sys.exit(0)
+
+        for failed in failed_items:
+            failed_urls = dict(failed)
+
+            #  Make a new url list to scrape
+            failed_url_data = {
+                'ID': failed_urls.get('url_list_id'),
+                'part_url': failed_urls.get('url'),
+                'part_name': failed_urls.get('part_num')
+            }
+
+            cache.rpush('failed_urls', json.dumps(failed_url_data))
 
     except Exception:
         raise
-
-    finally:
-        if conn:
-            await conn.close()
 
 
 async def store_data(data_list):
@@ -71,17 +82,17 @@ async def store_data(data_list):
                         issued_to,
                         completed_time
                     ) VALUES ($1, $2, $3, $4, $5::jsonb,
-                        $6::jsonb, $7, $8, $9, $10)'''
+                        $6::jsonb, $7, $8, $9, $10);'''
 
     sql_update = '''UPDATE parts_data
-                    SET part_num_analyzed=$1,
-                        details=$2::jsonb,
-                        specs=$3::jsonb,
-                        datasheet_url=$4,
-                        issued_time=$5,
-                        issued_to=$6,
-                        completed_time=$7
-                    WHERE url = $1;'''
+                    SET part_num_analyzed = $1,
+                        details = $2::jsonb,
+                        specs = $3::jsonb,
+                        datasheet_url = $4,
+                        issued_time = $5,
+                        issued_to = $6,
+                        completed_time = $7
+                    WHERE url = $8;'''
 
     try:
         async with asyncpg.create_pool(**postgres_details) as pool:
@@ -112,6 +123,13 @@ async def store_data(data_list):
                         data.get('url')
                     )
 
+                    if row is not None:
+                        record_to_dict = dict(row)
+                        part_num_analyzed = record_to_dict['part_num_analyzed']
+
+                        if part_num_analyzed == 'success':
+                            continue
+
                     if row:
                         await conn.execute(
                             sql_update,
@@ -122,6 +140,7 @@ async def store_data(data_list):
                             datetime.now(),
                             data.get('issued_to'),
                             time_complete,
+                            data.get('url')
                         )
 
                     else:
@@ -141,11 +160,12 @@ async def store_data(data_list):
 
         _clear_cache()
         print('Successfully stored data in postgres...')
-        logging.info('Successfully stored data in postgres...')
+        logging.info(
+            'Successfully stored data in postgres and cleared cache...')
 
     except Exception:
         raise
-        
+
 
 def scrape_data(urls_data, timeout, ip):
     print('Scraping...')
@@ -225,7 +245,8 @@ def scrape_data(urls_data, timeout, ip):
 
         return scraped_data
 
-    except Exception:
+    except Exception as error:
+        print(error)
         raise
 
     finally:
@@ -238,14 +259,14 @@ def scrape_data(urls_data, timeout, ip):
 
 def get_ip():
     try:
-        ip = None
-        ip = requests.get(f'http://{API_HOST}:{API_PORT}/api/get_ip')
+        get_ip = requests.get(f'http://{API_HOST}:{API_PORT}/api/get_ip')
+        ip = get_ip.json()['ip']
 
-        if ip.startswith('127.0.0.1') or ip is None:
+        if ip.startswith('127.0.0.1'):
             ip = requests.get('https://ident.me/').text
 
         return ip
-    
+
     except Exception:
         raise
 
@@ -306,3 +327,4 @@ def _deserialize(data):
 def _clear_cache():
     cache = StrictRedis(host=REDIS_HOST, port=REDIS_PORT)
     cache.flushall()
+    print('Cache cleared...')

@@ -10,8 +10,8 @@ COPY . .
 
 RUN apt-get update && apt-get install -y wget firefox-esr
 
-RUN wget -q "https://github.com/mozilla/geckodriver/releases/download/v0.24.0/geckodriver-v0.24.0-linux64.tar.gz" -O /tmp/geckodriver.tar.gz \
+RUN wget -q "https://github.com/mozilla/geckodriver/releases/download/v0.23.0/geckodriver-v0.23.0-linux64.tar.gz" -O /tmp/geckodriver.tar.gz \
     && tar -xzf /tmp/geckodriver.tar.gz -C /usr/local/bin/ \
     && chmod +x /usr/local/bin/geckodriver
 
-CMD ["python3", "app2.py"]
+CMD ["python", "app.py"]
