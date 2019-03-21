@@ -115,6 +115,7 @@ async def store_data(data_list):
                         format='binary'
                     )
 
+                    issued_time = datetime.now()
                     completed_time = data.get('completed_time')
                     time_complete = datetime.now() if completed_time else None
 
@@ -137,7 +138,7 @@ async def store_data(data_list):
                             data.get('details'),
                             data.get('specs'),
                             data.get('datasheet_url'),
-                            datetime.now(),
+                            issued_time,
                             data.get('issued_to'),
                             time_complete,
                             data.get('url')
@@ -153,7 +154,7 @@ async def store_data(data_list):
                             data.get('details'),
                             data.get('specs'),
                             data.get('datasheet_url'),
-                            datetime.now(),
+                            issued_time,
                             data.get('issued_to'),
                             time_complete,
                         )
@@ -170,12 +171,12 @@ async def store_data(data_list):
 def scrape_data(urls_data, timeout, ip):
     print('Scraping...')
 
+    opts = Options()
+    opts.headless = True
+    browser = Firefox(options=opts)
+
     try:
         cache = StrictRedis(host=REDIS_HOST, port=REDIS_PORT)
-
-        opts = Options()
-        opts.headless = True
-        browser = Firefox(options=opts)
 
         for url_info in urls_data:
             url = url_info.get('part_url')
@@ -222,7 +223,7 @@ def scrape_data(urls_data, timeout, ip):
                 specs = _make_specs(spec_keys, spec_values)
 
                 data['details'] = details
-                data['sepcs'] = specs
+                data['specs'] = specs
                 data['part_num_analyzed'] = 'success'
                 data['completed_time'] = time_now
 
@@ -245,8 +246,7 @@ def scrape_data(urls_data, timeout, ip):
 
         return scraped_data
 
-    except Exception as error:
-        print(error)
+    except Exception:
         raise
 
     finally:
